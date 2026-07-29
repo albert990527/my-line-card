@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的個人電子名片</title>
+  <!-- 載入 LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 flex flex-col items-center justify-center">
+
+  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm text-center">
+    <!-- 個人頭像與基本資料 -->
+    <img id="avatar" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-green-500" src="https://via.placeholder.com/100" alt="Avatar">
+    <h2 id="displayName" class="text-xl font-bold text-gray-800">載入中...</h2>
+    
+    <!-- 名片表單編輯 -->
+    <div class="mt-4 text-left space-y-3">
+      <div>
+        <label class="text-xs text-gray-500">職務頭銜</label>
+        <input id="jobTitle" type="text" value="全棧開發者" class="w-full border p-2 rounded text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">聯絡電話</label>
+        <input id="phone" type="text" value="0912-345-678" class="w-full border p-2 rounded text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">電子信箱</label>
+        <input id="email" type="email" value="alex@example.com" class="w-full border p-2 rounded text-sm mt-1">
+      </div>
+    </div>
+
+    <!-- 按鈕區 -->
+    <button id="shareBtn" onclick="shareCard()" class="w-full mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition">
+      發送名片給 LINE 好友
+    </button>
+  </div>
+
+  <script>
+    // ⚠️ 請填入你的 LIFF ID
+    const MY_LIFF_ID = "2010886491-jRstTBJk";
+    let userProfile = {};
+
+    async function main() {
+      try {
+        await liff.init({ liffId: MY_LIFF_ID });
+        
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        // 取得 LINE 使用者個人資料
+        userProfile = await liff.getProfile();
+        document.getElementById('avatar').src = userProfile.pictureUrl || 'https://via.placeholder.com/100';
+        document.getElementById('displayName').innerText = userProfile.displayName;
+
+      } catch (error) {
+        console.error("LIFF 初始化失敗：", error);
+        document.getElementById('displayName').innerText = "載入失敗，請確認是否在 LINE App 內開啟此頁面";
+      }
+    }
+
+    // 發送 Flex Message 名片
+    async function shareCard() {
+      const jobTitle = document.getElementById('jobTitle').value;
+      const phone = document.getElementById('phone').value;
+      const email = document.getElementById('email').value;
+
+      if (!liff.isApiAvailable('shareTargetPicker')) {
+        alert("請確認是否已在 LINE Console 開啟 ShareTargetPicker 權限！");
+        return;
+      }
+
+      try {
+        const result = await liff.shareTargetPicker([
+          {
+            type: "flex",
+            altText: `${userProfile.displayName} 的個人名片`,
+            contents: {
+              type: "bubble",
+              hero: {
+                type: "image",
+                url: userProfile.pictureUrl || "https://via.placeholder.com/300",
+                size: "full",
+                aspectRatio: "20:13",
+                aspectMode: "cover"
+              },
+              body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  { type: "text", text: userProfile.displayName, weight: "bold", size: "xl" },
+                  { type: "text", text: jobTitle, size: "sm", color: "#666666", margin: "xs" },
+                  { type: "separator", margin: "lg" },
+                  { type: "text", text: `📞 ${phone}`, size: "sm", margin: "lg", color: "#444444" },
+                  { type: "text", text: `✉️ ${email}`, size: "sm", margin: "xs", color: "#444444" }
+                ]
+              },
+              footer: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "button",
+                    action: { type: "uri", label: "撥打電話", uri: `tel:${phone}` },
+                    style: "primary",
+                    color: "#06C755"
+                  }
+                ]
+              }
+            }
+          }
+        ]);
+
+        if (result) {
+          alert("名片發送成功！");
+        }
+      } catch (error) {
+        console.error("發送失敗：", error);
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
