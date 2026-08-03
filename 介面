@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>名片生成器</title>
+<style>
+  :root{
+    --ink:#1c1b19; --paper:#f6f3ec; --panel:#ffffff;
+    --line:#e2ddd0; --muted:#847e70; --accent:#8a6d3b; --green:#06c755;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Noto Sans TC","Helvetica Neue",sans-serif;font-size:14px;
+  }
+  .wrap{
+    max-width:1180px;margin:0 auto;padding:32px 24px 80px;
+    display:grid;grid-template-columns:1fr 420px;gap:44px;align-items:start;
+  }
+  @media (max-width:980px){
+    .wrap{grid-template-columns:1fr;gap:28px;padding:24px 16px 60px;}
+    .side{position:static !important;}
+  }
+
+  h1{font-size:24px;margin:0 0 4px;letter-spacing:.02em;}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 26px;line-height:1.7;}
+
+  .sec{margin-bottom:26px;}
+  .sec > h2{
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+    font-weight:700;margin:0 0 12px;padding-top:16px;border-top:1px solid var(--line);
+  }
+  .sec:first-of-type > h2{padding-top:0;border-top:none;}
+
+  label{display:block;font-size:11.5px;letter-spacing:.05em;color:var(--muted);margin-bottom:5px;}
+  input[type=text],input[type=url],select{
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:6px;
+    background:var(--panel);font-size:13.5px;color:var(--ink);font-family:inherit;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent);}
+  .field{margin-bottom:14px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .help{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.6;}
+  .help code{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:1px 4px;}
+
+  /* 版型選擇 */
+  .tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;}
+  .tpl{
+    border:2px solid var(--line);border-radius:8px;background:var(--panel);
+    padding:10px 8px;cursor:pointer;text-align:center;transition:border-color .15s,transform .1s;
+  }
+  .tpl:hover{border-color:var(--accent);}
+  .tpl:active{transform:scale(.98);}
+  .tpl.on{border-color:var(--green);box-shadow:0 0 0 3px rgba(6,199,85,.12);}
+  .tpl .nm{font-size:12.5px;font-weight:700;}
+  .tpl .ds{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.4;}
+
+  /* 色票 */
+  .sw{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .sw i{
+    width:26px;height:26px;border-radius:50%;cursor:pointer;
+    border:2px solid transparent;display:block;
+  }
+  .sw i.on{border-color:var(--ink);}
+  .sw input[type=color]{
+    width:30px;height:30px;padding:0;border:1px solid var(--line);
+    border-radius:6px;background:none;cursor:pointer;
+  }
+
+  .colorRow{display:flex;gap:7px;align-items:center;}
+  .colorRow input[type=color]{
+    width:34px;height:32px;padding:0;border:1px solid var(--line);
+    border-radius:6px;background:none;cursor:pointer;flex-shrink:0;
+  }
+  .colorRow .val{
+    flex:1;font-size:11px;color:var(--muted);
+    font-family:ui-monospace,Menlo,monospace;min-width:0;
+  }
+  .colorRow button{
+    border:1px solid var(--line);background:var(--panel);border-radius:5px;
+    font-size:10.5px;padding:5px 7px;cursor:pointer;color:var(--muted);
+    font-family:inherit;flex-shrink:0;
+  }
+  .colorRow button:hover{border-color:var(--accent);color:var(--ink);}
+
+  .checks{display:flex;flex-direction:column;gap:9px;}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .chk input{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;}
+  .chk label{margin:0;font-size:13px;color:var(--ink);cursor:pointer;letter-spacing:0;}
+
+  .radios{display:flex;gap:16px;}
+  .radios label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);margin:0;cursor:pointer;}
+  .radios input{accent-color:var(--green);cursor:pointer;}
+
+  /* 自訂按鈕 */
+  .btnrow{display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:center;}
+  .btnrow button{
+    border:1px solid var(--line);background:var(--panel);border-radius:6px;
+    width:32px;height:34px;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;
+  }
+  .btnrow button:hover{border-color:#b94a4a;color:#b94a4a;}
+  .addbtn{
+    width:100%;padding:10px;border:1px dashed var(--line);border-radius:6px;
+    background:none;color:var(--muted);font-size:12.5px;cursor:pointer;font-family:inherit;
+  }
+  .addbtn:hover{border-color:var(--accent);color:var(--ink);}
+
+  /* 右欄 */
+  .side{position:sticky;top:32px;display:flex;flex-direction:column;gap:14px;align-items:center;}
+  .side .cap{
+    font-size:10.5px;letter-spacing:.14em;color:var(--muted);
+    font-weight:700;align-self:flex-start;
+  }
+  #canvas{width:100%;display:flex;justify-content:center;min-height:200px;}
+  .out{width:100%;display:flex;flex-direction:column;gap:8px;}
+  .out button{
+    width:100%;padding:11px;border-radius:7px;border:1px solid var(--line);
+    background:var(--panel);font-size:13px;font-weight:600;cursor:pointer;
+    font-family:inherit;color:var(--ink);
+  }
+  .out button:hover{border-color:var(--accent);}
+  .out button.main{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .out .linkbar{
+    display:flex;gap:7px;background:var(--panel);border:1px solid var(--line);
+    border-radius:7px;padding:7px 9px;align-items:center;
+  }
+  .out .linkbar input{
+    flex:1;border:none;outline:none;background:none;min-width:0;
+    font-size:10.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;
+  }
+  .out .linkbar button{width:auto;padding:5px 9px;font-size:11px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(10px);
+    background:var(--ink);color:#fff;font-size:13px;padding:9px 17px;border-radius:20px;
+    opacity:0;pointer-events:none;transition:.22s;z-index:99;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<div>
+  <h1>名片生成器</h1>
+  <p class="lead">選版型、填內容，右邊即時看到成品。產出的是 LINE Flex Message JSON，可以直接餵給機器人推播，也能存成 <code>card.json</code> 給分享頁用。單一檔案、零相依，直接開就能用。</p>
+
+  <div class="sec">
+    <h2>版型</h2>
+    <div class="tpls" id="tpls"></div>
+  </div>
+
+  <div class="sec">
+    <h2>基本資料</h2>
+    <div class="field">
+      <label for="n">姓名 *</label>
+      <input id="n" type="text" placeholder="王大明" value="王大明">
+    </div>
+    <div class="field">
+      <label for="id">專屬連結名稱</label>
+      <input id="id" type="text" placeholder="daming（留空自動產生）">
+      <div class="help">預留欄位。目前名片連結用的是把內容編碼進網址的方式，之後接了後端就能改用 <code>/share/daming</code> 這種短網址，而且發出去之後還能更新內容。</div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="c">公司</label><input id="c" type="text" placeholder="公司名稱" value="Studio Ming"></div>
+      <div class="field"><label for="t">職稱</label><input id="t" type="text" placeholder="你的職稱" value="產品設計師"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="d">部門</label><input id="d" type="text" placeholder="設計部"></div>
+      <div class="field">
+        <label>名片主色調</label>
+        <div class="sw" id="sw">
+          <i data-c="#06C755" style="background:#06C755"></i>
+          <i data-c="#3B82F6" style="background:#3B82F6"></i>
+          <i data-c="#E05252" style="background:#E05252"></i>
+          <i data-c="#9B5DE5" style="background:#9B5DE5"></i>
+          <i data-c="#E8A33D" style="background:#E8A33D"></i>
+          <i data-c="#8A6D3B" style="background:#8A6D3B"></i>
+          <i data-c="#2F3E4E" style="background:#2F3E4E"></i>
+          <i data-c="#1C1B19" style="background:#1C1B19"></i>
+          <input type="color" id="colCustom" value="#06C755" title="自訂顏色">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>聯絡方式</h2>
+    <div class="grid2">
+      <div class="field"><label for="p">電話</label><input id="p" type="text" placeholder="0912-345-678" value="0912-345-678"></div>
+      <div class="field"><label for="e">Email</label><input id="e" type="text" placeholder="hello@studio.com" value="hello@studio.com"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="l">LINE ID</label><input id="l" type="text" placeholder="studio_ming"></div>
+      <div class="field"><label for="a">地址</label><input id="a" type="text" placeholder="台北市信義區松高路1號"></div>
+    </div>
+    <div class="field">
+      <label>點擊行為設定</label>
+      <div class="checks">
+        <div class="chk"><input type="checkbox" id="fp" checked><label for="fp">電話可撥打</label></div>
+        <div class="chk"><input type="checkbox" id="fe" checked><label for="fe">Email 可寄信</label></div>
+        <div class="chk"><input type="checkbox" id="fa" checked><label for="fa">地址可開地圖</label></div>
+        <div class="chk"><input type="checkbox" id="fl" checked><label for="fl">LINE ID 可加好友</label></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>社群與網站</h2>
+    <div class="grid2">
+      <div class="field"><label for="w">網站</label><input id="w" type="text" placeholder="https://..."></div>
+      <div class="field"><label for="f">Facebook</label><input id="f" type="text" placeholder="https://fb.com/..."></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="i">Instagram</label><input id="i" type="text" placeholder="https://instagram.com/..."></div>
+      <div class="field"><label for="k">LinkedIn</label><input id="k" type="text" placeholder="https://linkedin.com/in/..."></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>頭像</h2>
+    <div class="field">
+      <label for="photo">頭像網址</label>
+      <input id="photo" type="text" placeholder="https://你的網域/avatar.png" value="https://placehold.co/320x320/EFEAE0/8A6D3B.png?text=PHOTO">
+      <div class="help">
+        <b>必須是公開的 HTTPS 網址，格式限 JPEG 或 PNG。</b>
+        Flex Message 不支援 GIF 和 WebP，也不能用本機檔案或 base64。
+        建議跟分享頁放在同一個主機，例如 <code>https://你的網域/avatar.png</code>。
+        上傳功能要等後端做好才有。<br>
+        目前填的是佔位圖，換成你自己的網址即可；清空則不顯示頭像。
+        <b>「極簡風」版型本來就沒有頭像</b>，填了也不會出現。
+      </div>
+    </div>
+    <div class="field">
+      <label>頭像大小</label>
+      <div class="radios">
+        <label><input type="radio" name="ps" value="大">大</label>
+        <label><input type="radio" name="ps" value="中" checked>中</label>
+        <label><input type="radio" name="ps" value="小">小</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>進階顏色</h2>
+    <p class="help" style="margin:-4px 0 12px;">留空的欄位會自動回退到主色調或預設值。</p>
+    <div class="grid2" id="adv"></div>
+  </div>
+
+  <div class="sec">
+    <h2>按鈕</h2>
+    <div class="field">
+      <div class="chk"><input type="checkbox" id="share"><label for="share">加上「分享名片給好友」按鈕</label></div>
+    </div>
+    <div class="field">
+      <label for="shareUrl">LIFF 分享頁網址</label>
+      <input id="shareUrl" type="text" placeholder="https://liff.line.me/2010915815-NNnlFu57">
+      <div class="help">按鈕會開啟這一頁，使用者在那裡再按一次才會跳出好友選擇器。Flex 的按鈕沒辦法直接叫出選擇器，這是 LINE 的限制。</div>
+    </div>
+    <div class="field">
+      <label>自訂按鈕（最多 3 個）</label>
+      <div id="btns"></div>
+      <button class="addbtn" id="addBtn" type="button">+ 新增按鈕</button>
+    </div>
+  </div>
+</div>
+
+<div class="side">
+  <div class="cap">即時預覽</div>
+  <div id="canvas"></div>
+  <div class="out">
+    <button class="main" id="copyJson" type="button">複製 Flex JSON</button>
+    <button id="dlJson" type="button">下載 card.json</button>
+    <div class="linkbar">
+      <input id="link" type="text" readonly>
+      <button id="copyLink" type="button">複製</button>
+    </div>
+    <div class="help" style="text-align:center;">名片連結需要把 <code>share.html</code> 部署到網路上才能用</div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== flex-render.js（內嵌） ===== */
+/**
+ * 迷你 Flex Message 渲染器：把 Flex JSON 畫成 HTML。
+ * 用途是在網頁上做所見即所得的預覽，涵蓋 bubble / box / text /
+ * image / separator / button / filler 與常用屬性。
+ *
+ * 這不是 LINE 官方渲染引擎，複雜版型會有細微差異，
+ * 但一般名片類卡片足夠精確。
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.FlexRender = api;
+})(typeof self !== "undefined" ? self : this, function () {
+
+  var TEXT_SIZE = { xxs:11, xs:13, sm:14, md:16, lg:19, xl:22, xxl:27, "3xl":29, "4xl":33, "5xl":37 };
+  var SPACE     = { none:0, xs:2, sm:4, md:8, lg:12, xl:16, xxl:20 };
+  var BUBBLE_W  = { nano:120, micro:160, deca:200, hecto:241, kilo:260, mega:300, giga:386 };
+  var IMG_SIZE  = { xxs:40, xs:60, sm:80, md:100, lg:120, xl:140, xxl:160,
+                    "3xl":180, "4xl":200, "5xl":220, full:"100%" };
+  var WEIGHT    = { regular:400, bold:700 };
+
+  function px(v){ return typeof v === "number" ? v + "px" : v; }
+
+  /* margin / spacing 可以是關鍵字，也可以是 "12px" 這種字面值 */
+  function space(v){
+    if (v == null) return null;
+    if (SPACE[v] != null) return SPACE[v] + "px";
+    return String(v);
+  }
+
+  function el(tag, cls){
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    return n;
+  }
+
+  /* ---------- 共通樣式 ---------- */
+
+  function applyCommon(node, dom, parentLayout, index){
+    var s = dom.style;
+
+    if (node.backgroundColor) s.background = node.backgroundColor;
+
+    if (node.background && node.background.type === "linearGradient"){
+      var g = node.background;
+      s.background = "linear-gradient(" + (g.angle || "180deg") + ", " +
+                     g.startColor + (g.centerColor ? ", " + g.centerColor : "") +
+                     ", " + g.endColor + ")";
+    }
+
+    if (node.cornerRadius){
+      s.borderRadius = space(node.cornerRadius) || px(node.cornerRadius);
+      /* LINE 會裁掉超出圓角的內容，圓形頭像就是靠這個 */
+      s.overflow = "hidden";
+    }
+    if (node.borderWidth){
+      s.border = (space(node.borderWidth) || px(node.borderWidth)) + " solid " +
+                 (node.borderColor || "#000000");
+    }
+
+    if (node.width)  s.width  = px(node.width);
+    if (node.height) s.height = px(node.height);
+
+    /* padding：paddingAll 先套，個別方向再覆蓋 */
+    if (node.paddingAll) s.padding = space(node.paddingAll);
+    ["Top","Bottom","Start","End"].forEach(function(dir){
+      var v = node["padding" + dir];
+      if (!v) return;
+      var css = { Top:"paddingTop", Bottom:"paddingBottom",
+                  Start:"paddingLeft", End:"paddingRight" }[dir];
+      s[css] = space(v);
+    });
+
+    /* margin 依父層方向決定推的方向；第一個元素不套 */
+    if (node.margin && index > 0){
+      if (parentLayout === "vertical") s.marginTop = space(node.margin);
+      else s.marginLeft = space(node.margin);
+    }
+
+    /* flex：水平父層預設 1，垂直父層預設 0 */
+    var f = node.flex;
+    if (f == null) f = (parentLayout === "vertical") ? 0 : 1;
+    if (f === 0){ s.flexGrow = "0"; s.flexShrink = "0"; }
+    else { s.flexGrow = String(f); s.flexBasis = "0"; s.minWidth = "0"; }
+
+    if (node.offsetTop)   { s.position = "relative"; s.top   = space(node.offsetTop); }
+    if (node.offsetStart) { s.position = "relative"; s.left  = space(node.offsetStart); }
+
+    /* gravity 只在水平父層有意義 */
+    if (node.gravity && parentLayout !== "vertical"){
+      s.alignSelf = { top:"flex-start", center:"center", bottom:"flex-end" }[node.gravity] || "auto";
+    }
+  }
+
+  /* ---------- 各元件 ---------- */
+
+  function renderText(node, parentLayout, index){
+    var d = el("div");
+    d.textContent = node.text == null ? "" : node.text;
+    var s = d.style;
+
+    s.fontSize   = (TEXT_SIZE[node.size] || TEXT_SIZE.md) + "px";
+    s.fontWeight = WEIGHT[node.weight] || 400;
+    s.color      = node.color || "#000000";
+    s.lineHeight = node.lineSpacing ? "normal" : "1.45";
+
+    if (node.align)      s.textAlign = node.align === "end" ? "right"
+                                     : node.align === "start" ? "left" : "center";
+    if (node.decoration) s.textDecoration = node.decoration;
+
+    if (node.wrap){
+      s.whiteSpace = "normal";
+      s.overflowWrap = "anywhere";
+    } else {
+      s.whiteSpace = "nowrap";
+      s.overflow = "hidden";
+      s.textOverflow = "ellipsis";
+    }
+
+    /* gravity center 需要撐滿高度才看得出效果 */
+    if (node.gravity === "center"){
+      s.display = "flex";
+      s.alignItems = "center";
+      s.justifyContent = node.align === "center" ? "center" : "flex-start";
+      s.height = "100%";
+    }
+
+    if (node.action) d.style.cursor = "pointer";
+    applyCommon(node, d, parentLayout, index);
+    return d;
+  }
+
+  function renderImage(node, parentLayout, index){
+    var wrap = el("div");
+    wrap.style.overflow = "hidden";
+    wrap.style.display = "flex";
+
+    var img = el("img");
+    img.src = node.url || "";
+    img.alt = "";
+    img.loading = "lazy";
+
+    var size = node.size || "md";
+    var w = IMG_SIZE[size] != null ? IMG_SIZE[size] : size;
+    wrap.style.width = px(w);
+
+    if (node.aspectRatio){
+      var parts = String(node.aspectRatio).split(":");
+      if (parts.length === 2) wrap.style.aspectRatio = parts[0] + " / " + parts[1];
+    }
+
+    img.style.width  = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = node.aspectMode === "fit" ? "contain" : "cover";
+    img.style.display = "block";
+
+    /* 圖片載不到時給個提示，不然只會看到空白很難查 */
+    img.onerror = function(){
+      wrap.style.background = "#f0ece2";
+      wrap.style.alignItems = "center";
+      wrap.style.justifyContent = "center";
+      wrap.innerHTML = '<span style="font-size:10px;color:#a09789;text-align:center;' +
+                       'padding:6px;line-height:1.4;">圖片載入失敗</span>';
+    };
+
+    wrap.appendChild(img);
+    applyCommon(node, wrap, parentLayout, index);
+    if (node.size === "full") wrap.style.width = "100%";
+    return wrap;
+  }
+
+  function renderSeparator(node, parentLayout, index){
+    var d = el("div");
+    d.style.flexShrink = "0";
+    d.style.alignSelf = "stretch";
+    if (parentLayout === "vertical"){
+      d.style.height = "1px";
+      d.style.width = "100%";
+    } else {
+      d.style.width = "1px";
+    }
+    d.style.background = node.color || "#E0E0E0";
+    if (node.margin && index > 0){
+      if (parentLayout === "vertical") d.style.marginTop = space(node.margin);
+      else d.style.marginLeft = space(node.margin);
+    }
+    return d;
+  }
+
+  function renderButton(node, parentLayout, index){
+    var b = el("div");
+    var a = node.action || {};
+    b.textContent = a.label || "";
+
+    var s = b.style;
+    s.display = "flex";
+    s.alignItems = "center";
+    s.justifyContent = "center";
+    s.borderRadius = "6px";
+    s.fontWeight = "700";
+    s.fontSize = "14px";
+    s.cursor = "pointer";
+    s.height = node.height === "sm" ? "36px" : "48px";
+    s.padding = "0 12px";
+    s.textAlign = "center";
+    s.overflow = "hidden";
+    s.whiteSpace = "nowrap";
+    s.textOverflow = "ellipsis";
+
+    if (node.style === "primary"){
+      s.background = node.color || "#17c950";
+      s.color = "#ffffff";
+    } else if (node.style === "secondary"){
+      s.background = node.color || "#dcdfe5";
+      s.color = "#111111";
+    } else {
+      s.background = "transparent";
+      s.color = node.color || "#42659a";
+    }
+
+    applyCommon(node, b, parentLayout, index);
+    return b;
+  }
+
+  function renderFiller(node){
+    var d = el("div");
+    d.style.flexGrow = String(node.flex == null ? 1 : node.flex);
+    return d;
+  }
+
+  function renderBox(node, parentLayout, index){
+    var d = el("div");
+    var layout = node.layout || "vertical";
+    var s = d.style;
+
+    s.display = "flex";
+    s.flexDirection = layout === "vertical" ? "column" : "row";
+    if (layout === "baseline") s.alignItems = "baseline";
+    if (node.spacing) s.gap = space(node.spacing);
+    if (node.justifyContent) s.justifyContent = node.justifyContent;
+    if (node.alignItems) s.alignItems = node.alignItems;
+    s.boxSizing = "border-box";
+    s.minWidth = "0";
+
+    (node.contents || []).forEach(function(child, i){
+      var c = renderNode(child, layout, i);
+      if (c) d.appendChild(c);
+    });
+
+    applyCommon(node, d, parentLayout, index);
+    return d;
+  }
+
+  function renderNode(node, parentLayout, index){
+    if (!node || typeof node !== "object") return null;
+    switch (node.type){
+      case "box":       return renderBox(node, parentLayout, index);
+      case "text":      return renderText(node, parentLayout, index);
+      case "image":     return renderImage(node, parentLayout, index);
+      case "separator": return renderSeparator(node, parentLayout, index);
+      case "button":    return renderButton(node, parentLayout, index);
+      case "filler":    return renderFiller(node);
+      case "spacer":    var sp = el("div"); sp.style.height = space(node.size) || "8px"; return sp;
+      default:          return null;
+    }
+  }
+
+  /* ---------- 對外：畫一顆 bubble ---------- */
+
+  function renderBubble(bubble){
+    var wrap = el("div");
+    wrap.style.width = "100%";
+    wrap.style.maxWidth = (BUBBLE_W[bubble.size] || BUBBLE_W.mega) + "px";
+    wrap.style.borderRadius = "12px";
+    wrap.style.overflow = "hidden";
+    wrap.style.background = "#ffffff";
+    wrap.style.boxShadow = "0 14px 30px -16px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.08)";
+    wrap.style.fontFamily = '"Noto Sans TC","Helvetica Neue",sans-serif';
+
+    ["header","hero","body","footer"].forEach(function(part){
+      var n = bubble[part];
+      if (!n) return;
+      var d = (part === "hero" && n.type === "image")
+        ? renderImage(Object.assign({ size:"full" }, n), "vertical", 0)
+        : renderNode(n, "vertical", 0);
+      if (d){
+        d.style.flexGrow = "0";
+        d.style.width = "100%";
+        wrap.appendChild(d);
+      }
+    });
+
+    return wrap;
+  }
+
+  /* carousel 在 LINE 裡是左右滑動的，但預覽時直向堆疊比較好看全部內容。
+     每一頁上方標出頁碼，避免誤以為那是好幾張獨立的卡。 */
+  function renderCarousel(carousel){
+    var col = el("div");
+    col.style.display = "flex";
+    col.style.flexDirection = "column";
+    col.style.alignItems = "center";
+    col.style.gap = "16px";
+    col.style.width = "100%";
+
+    var pages = carousel.contents || [];
+    pages.forEach(function(b, i){
+      var item = el("div");
+      item.style.display = "flex";
+      item.style.flexDirection = "column";
+      item.style.alignItems = "center";
+      item.style.gap = "6px";
+      item.style.width = "100%";
+
+      var tag = el("div");
+      tag.textContent = "第 " + (i + 1) + " 頁 / 共 " + pages.length + " 頁";
+      tag.style.cssText =
+        "font-size:10px;letter-spacing:.1em;color:#9a9489;font-weight:700;" +
+        'font-family:"Noto Sans TC",sans-serif;';
+
+      item.appendChild(tag);
+      item.appendChild(renderBubble(b));
+      col.appendChild(item);
+    });
+
+    return col;
+  }
+
+  function render(json){
+    var node = (json && json.type === "flex" && json.contents) ? json.contents : json;
+    if (node && node.type === "carousel") return renderCarousel(node);
+    if (node && node.type === "bubble")   return renderBubble(node);
+    throw new Error("只支援 bubble 或 carousel，收到的是 " + (node && node.type));
+  }
+
+  return { render: render };
+});
+</script>
+<script>
+/* ===== templates.js（內嵌） ===== */
+/**
+ * 名片版型集合。半固定模板 = 版型是函式、內容是資料。
+ *
+ * 新增版型只要在 TEMPLATES 裡加一個項目，其他地方都不用動。
+ * 每個版型收同一份資料物件，回傳一顆 Flex bubble。
+ *
+ * Node 與瀏覽器共用：
+ *   Node      const { buildCard, TEMPLATES } = require("./templates");
+ *   瀏覽器     用 script 標籤載入本檔 → window.CardTemplates
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.CardTemplates = api;
+})(typeof self !== "undefined" ? self : this, function () {
+
+  /* ================= 共用工具 ================= */
+
+  function clean(s){ return String(s == null ? "" : s).trim(); }
+
+  function txt(s, max){
+    var v = clean(s);
+    if (!v) return null;
+    max = max || 100;
+    return v.length > max ? v.slice(0, max - 1) + "…" : v;
+  }
+
+  function url(u){
+    var v = clean(u);
+    if (!v) return "";
+    return /^https?:\/\//i.test(v) ? v : "https://" + v;
+  }
+
+  function telUri(phone){
+    var parts = clean(phone).split(/[#]|\bext\.?\b/i);
+    var digits = String(parts[0] || "").replace(/[^0-9+]/g, "");
+    if (!digits) return "";
+    var ext = String(parts[1] || "").replace(/[^0-9]/g, "");
+    return "tel:" + digits + (ext ? ";ext=" + ext : "");
+  }
+
+  function lineUri(id){
+    var v = clean(id);
+    return v ? "https://line.me/ti/p/~" + encodeURIComponent(v) : "";
+  }
+
+  function mapUri(addr){
+    var v = clean(addr);
+    return v ? "https://maps.google.com/?q=" + encodeURIComponent(v) : "";
+  }
+
+  function isHex(c){ return /^#[0-9a-fA-F]{6}$/.test(clean(c)); }
+
+  /* 進階顏色：沒設就回退到主色或預設值 */
+  function palette(d){
+    var main = isHex(d.col) ? d.col : "#06C755";
+    return {
+      main:   main,
+      bg:     isHex(d.colBg)     ? d.colBg     : "#FFFFFF",
+      name:   isHex(d.colName)   ? d.colName   : main,
+      sub:    isHex(d.colSub)    ? d.colSub    : "#999999",
+      text:   isHex(d.colText)   ? d.colText   : "#666666",
+      btn:    isHex(d.colBtn)    ? d.colBtn    : main,
+      footer: isHex(d.colFooter) ? d.colFooter : null
+    };
+  }
+
+  var AVATAR = { 大:110, 中:84, 小:60, large:110, medium:84, small:60 };
+  function avatarPx(size){ return AVATAR[size] || AVATAR.中; }
+
+  /* 圓形頭像：Flex 的 image 沒有 cornerRadius，要用 box 包起來裁切 */
+  function circleAvatar(d, px){
+    var src = url(d.photo);
+    if (!src) return null;
+    return {
+      type: "box", layout: "vertical",
+      width: px + "px", height: px + "px",
+      cornerRadius: px + "px",
+      flex: 0,
+      contents: [{ type:"image", url:src, size:"full",
+                   aspectRatio:"1:1", aspectMode:"cover" }]
+    };
+  }
+
+  /* 職稱 · 公司 · 部門 合併成一行 */
+  function subtitle(d){
+    var parts = [txt(d.t, 30), txt(d.c, 30), txt(d.d, 20)].filter(Boolean);
+    return parts.length ? parts.join(" · ") : null;
+  }
+
+  /* 一列聯絡資訊，label 可省略 */
+  function row(label, value, uri, pal, opts){
+    var v = txt(value, 60);
+    if (!v) return null;
+    opts = opts || {};
+
+    var valueNode = {
+      type: "text", text: v,
+      size: opts.size || "sm",
+      color: opts.color || pal.text,
+      flex: 1, wrap: true
+    };
+    if (uri){
+      valueNode.action = { type:"uri", label: label || "開啟", uri: uri };
+      valueNode.decoration = "underline";
+    }
+    if (!label) return valueNode;
+
+    return {
+      type: "box", layout: "horizontal", spacing: "sm",
+      contents: [
+        { type:"box", layout:"vertical", width:"42px", flex:0,
+          contents:[{ type:"text", text:label, size:"xxs",
+                      weight:"bold", color: opts.labelColor || pal.main }] },
+        valueNode
+      ]
+    };
+  }
+
+  function contactRows(d, pal, opts){
+    return [
+      row("TEL",  d.p, d.fp ? telUri(d.p) : "", pal, opts),
+      row("MAIL", d.e, d.fe ? ("mailto:" + clean(d.e)) : "", pal, opts),
+      row("LINE", d.l, d.fl ? lineUri(d.l) : "", pal, opts),
+      row("MAP",  d.a, d.fa ? mapUri(d.a) : "", pal, opts)
+    ].filter(Boolean);
+  }
+
+  /* 無標籤版本，給極簡類版型用 */
+  function contactPlain(d, pal, opts){
+    return [
+      row(null, d.p, d.fp ? telUri(d.p) : "", pal, opts),
+      row(null, d.e, d.fe ? ("mailto:" + clean(d.e)) : "", pal, opts),
+      row(null, d.l, d.fl ? lineUri(d.l) : "", pal, opts),
+      row(null, d.a, d.fa ? mapUri(d.a) : "", pal, opts)
+    ].filter(Boolean);
+  }
+
+  function socialRow(d, pal, color){
+    var items = [
+      ["網站", url(d.w)], ["Facebook", url(d.f)],
+      ["Instagram", url(d.i)], ["LinkedIn", url(d.k)]
+    ].filter(function(x){ return x[1]; });
+    if (!items.length) return [];
+    return [{
+      type:"box", layout:"horizontal", spacing:"md", margin:"md",
+      contents: items.map(function(x){
+        return { type:"text", text:x[0], size:"xxs", weight:"bold",
+                 color: color || pal.main, flex:0,
+                 action:{ type:"uri", label:x[0], uri:x[1] } };
+      })
+    }];
+  }
+
+  /* footer 按鈕：分享鈕 + 自訂按鈕，上限 4 顆免得卡片太高 */
+  function footerButtons(d, pal){
+    var out = [];
+
+    if (d.share && clean(d.shareUrl)){
+      out.push({ type:"button", style:"primary", height:"sm", color:"#06C755",
+                 action:{ type:"uri", label:"分享名片給好友", uri: clean(d.shareUrl) } });
+    }
+
+    (d.buttons || []).forEach(function(b){
+      var label = txt(b.label, 20), href = url(b.uri);
+      if (!label || !href) return;
+      out.push({ type:"button", style:"secondary", height:"sm", color: pal.btn,
+                 action:{ type:"uri", label:label, uri:href } });
+    });
+
+    return out.slice(0, 4);
+  }
+
+  function wrapFooter(buttons, pal){
+    if (!buttons.length) return null;
+    var f = { type:"box", layout:"vertical", spacing:"sm",
+              paddingAll:"16px", contents: buttons };
+    if (pal.footer) f.backgroundColor = pal.footer;
+    return f;
+  }
+
+  /* Flex 沒有 align-self:center，用左右 filler 夾住來置中 */
+  function center(node){
+    if (!node) return null;
+    return { type:"box", layout:"horizontal", contents:[
+      { type:"filler" }, node, { type:"filler" }
+    ]};
+  }
+
+  function bubble(d, pal, bodyContents, opts){
+    opts = opts || {};
+    var b = {
+      type: "bubble",
+      size: opts.size || "mega",
+      body: {
+        type:"box", layout:"vertical",
+        paddingAll: opts.padding || "22px",
+        backgroundColor: pal.bg,
+        contents: bodyContents.filter(Boolean)
+      }
+    };
+    if (opts.bodyExtra) Object.assign(b.body, opts.bodyExtra);
+    var f = wrapFooter(footerButtons(d, pal), pal);
+    if (f){
+      if (!pal.footer) f.backgroundColor = pal.bg;
+      b.footer = f;
+    }
+    return b;
+  }
+
+  /* ================= 版型 ================= */
+
+  var TEMPLATES = {
+
+    /* 頭像在上、資訊在下、整體置中 */
+    classic: {
+      label: "經典標準",
+      desc: "頭像在上，資訊在下",
+      build: function(d){
+        var pal = palette(d);
+        var av = circleAvatar(d, avatarPx(d.photoSize));
+        var sub = subtitle(d);
+        return bubble(d, pal, [
+          av ? center(av) : null,
+          { type:"text", text: txt(d.n, 30) || "姓名", size:"xl", weight:"bold",
+            color: pal.name, align:"center", margin: av ? "md" : "none", wrap:true },
+          sub ? { type:"text", text:sub, size:"sm", color:pal.sub,
+                  align:"center", margin:"xs", wrap:true } : null,
+          { type:"separator", margin:"lg", color:"#E8E8E8" },
+          { type:"box", layout:"vertical", spacing:"sm", margin:"lg",
+            contents: contactRows(d, pal) }
+        ].concat(socialRow(d, pal)));
+      }
+    },
+
+    /* 左圓形頭像、右資訊 */
+    leftAvatar: {
+      label: "頭像左側",
+      desc: "左圓形頭像，右資訊",
+      build: function(d){
+        var pal = palette(d);
+        var av = circleAvatar(d, Math.min(avatarPx(d.photoSize), 72));
+        var sub = subtitle(d);
+        var head = {
+          type:"box", layout:"horizontal", spacing:"lg", contents:[]
+        };
+        if (av) head.contents.push(av);
+        head.contents.push({
+          type:"box", layout:"vertical", flex:1, justifyContent:"center", contents:[
+            { type:"text", text: txt(d.n, 24) || "姓名", size:"lg",
+              weight:"bold", color:pal.name, wrap:true },
+            sub ? { type:"text", text:sub, size:"xs", color:pal.sub,
+                    margin:"xs", wrap:true } : null
+          ].filter(Boolean)
+        });
+        return bubble(d, pal, [
+          head,
+          { type:"separator", margin:"lg", color:"#E8E8E8" },
+          { type:"box", layout:"vertical", spacing:"sm", margin:"lg",
+            contents: contactRows(d, pal) }
+        ].concat(socialRow(d, pal)));
+      }
+    },
+
+    /* 無頭像、大字名稱 */
+    minimal: {
+      label: "極簡風",
+      desc: "無頭像，大字名稱",
+      build: function(d){
+        var pal = palette(d);
+        var sub = subtitle(d);
+        return bubble(d, pal, [
+          { type:"text", text: txt(d.n, 20) || "姓名", size:"xxl",
+            weight:"bold", color:pal.name, wrap:true },
+          sub ? { type:"text", text:sub, size:"sm", color:pal.sub,
+                  margin:"sm", wrap:true } : null,
+          { type:"box", layout:"vertical", width:"36px", height:"3px",
+            backgroundColor: pal.main, margin:"lg", contents:[{type:"filler"}] },
+          { type:"box", layout:"vertical", spacing:"xs", margin:"lg",
+            contents: contactPlain(d, pal) }
+        ].concat(socialRow(d, pal)), { padding:"26px" });
+      }
+    },
+
+    /* 左色條 + 直式照片 + 欄位標籤，證件風 */
+    badge: {
+      label: "證件卡",
+      desc: "左色條，直式照片",
+      build: function(d){
+        var pal = palette(d);
+        var photo = url(d.photo);
+        var sub = subtitle(d);
+
+        var right = {
+          type:"box", layout:"vertical", flex:1, spacing:"sm",
+          contents: contactRows(d, pal, { size:"xs" })
+        };
+
+        var mid = { type:"box", layout:"horizontal", spacing:"lg", margin:"lg", contents:[] };
+        if (photo){
+          mid.contents.push({
+            type:"box", layout:"vertical", width:"92px", height:"116px",
+            flex:0, cornerRadius:"6px", borderWidth:"2px", borderColor:"#DDDDDD",
+            contents:[{ type:"image", url:photo, size:"full",
+                        aspectRatio:"92:116", aspectMode:"cover" }]
+          });
+        }
+        mid.contents.push(right);
+
+        return bubble(d, pal, [
+          { type:"box", layout:"horizontal", contents:[
+            { type:"box", layout:"vertical", flex:1, contents:[
+              { type:"text", text: txt(d.n, 20) || "姓名", size:"xl",
+                weight:"bold", color: pal.name, wrap:true },
+              sub ? { type:"text", text:sub, size:"xs", color:pal.sub,
+                      margin:"xs", wrap:true } : null
+            ].filter(Boolean) },
+            { type:"box", layout:"vertical", width:"6px", flex:0,
+              backgroundColor: pal.main, cornerRadius:"3px",
+              contents:[{type:"filler"}] }
+          ]},
+          { type:"separator", margin:"md", color:"#DDDDDD" },
+          mid,
+          { type:"separator", margin:"lg", color:"#DDDDDD" }
+        ].concat(socialRow(d, pal)), { size:"giga" });
+      }
+    }
+  };
+
+  /* ================= 對外 ================= */
+
+  function buildCard(d){
+    d = d || {};
+    var tpl = TEMPLATES[d.tpl] || TEMPLATES.classic;
+    return tpl.build(d);
+  }
+
+  function altTextFor(d){
+    var parts = [clean(d.n) || "數位名片"];
+    var sub = subtitle(d);
+    if (sub) parts.push(sub);
+    return (parts.join("｜") + " 的數位名片").slice(0, 390);
+  }
+
+  function buildMessage(d){
+    return { type:"flex", altText: altTextFor(d), contents: buildCard(d) };
+  }
+
+
+  function list(){
+    return Object.keys(TEMPLATES).map(function(k){
+      return { key:k, label:TEMPLATES[k].label, desc:TEMPLATES[k].desc };
+    });
+  }
+
+  return { TEMPLATES: TEMPLATES, buildCard: buildCard,
+           buildMessage: buildMessage, altTextFor: altTextFor, list: list };
+});
+</script>
+<script>
+(function(){
+  "use strict";
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* 相依檢查：少了任何一個檔，整頁會靜默失敗，所以先擋下來講清楚 */
+  var missing = [];
+  if (!window.FlexRender)    missing.push("flex-render.js");
+  if (!window.CardTemplates) missing.push("templates.js");
+  if (missing.length){
+    document.body.innerHTML =
+      '<div style="max-width:520px;margin:80px auto;padding:24px 26px;background:#fff6e5;' +
+      'border:1px solid #e8d3a8;border-radius:10px;font-family:\'Noto Sans TC\',sans-serif;' +
+      'color:#6b5320;line-height:1.8;font-size:14px;">' +
+      '<div style="font-weight:700;font-size:16px;color:#4d3c17;margin-bottom:10px;">' +
+      '載入不到必要檔案</div>' +
+      '缺少：<b>' + missing.join("、") + "</b><br><br>" +
+      "這幾個檔必須跟 <code>名片生成.html</code> 放在<b>同一個資料夾</b>。<br><br>" +
+      "常見原因：<br>" +
+      "1. 檔案沒下載到，或存到別的資料夾<br>" +
+      "2. 瀏覽器把檔名存成了 <code>templates.js.txt</code>，" +
+      "Windows 預設會隱藏副檔名，用 PowerShell 的 <code>dir</code> 才看得出來<br>" +
+      "3. 資料夾裡的檔名大小寫不符" +
+      "</div>";
+    return;
+  }
+  var state = { tpl:"classic", col:"#06C755", buttons:[] };
+
+  var ADV = [
+    ["colBg",     "背景色",        "#FFFFFF", "重置"],
+    ["colName",   "姓名顏色",      "",        "用主色"],
+    ["colSub",    "職稱/公司顏色", "#999999", "重置"],
+    ["colText",   "聯絡資訊顏色",  "#666666", "重置"],
+    ["colBtn",    "按鈕顏色",      "",        "用主色"],
+    ["colFooter", "底部背景色",    "",        "不設定"]
+  ];
+
+  function toast(m){
+    var t = $("toast"); t.textContent = m; t.classList.add("on");
+    clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove("on"); }, 2000);
+  }
+
+  /* ---------- 版型選擇 ---------- */
+
+  function buildTemplatePicker(){
+    var host = $("tpls");
+    window.CardTemplates.list().forEach(function(t){
+      var el = document.createElement("div");
+      el.className = "tpl" + (t.key === state.tpl ? " on" : "");
+      el.innerHTML = '<div class="nm">' + t.label + '</div><div class="ds">' + t.desc + "</div>";
+      el.onclick = function(){
+        state.tpl = t.key;
+        host.querySelectorAll(".tpl").forEach(function(x){ x.classList.remove("on"); });
+        el.classList.add("on");
+        update();
+      };
+      host.appendChild(el);
+    });
+  }
+
+  /* ---------- 進階顏色 ---------- */
+
+  function buildAdvColors(){
+    var host = $("adv");
+    ADV.forEach(function(a){
+      var key = a[0], label = a[1], def = a[2], resetLabel = a[3];
+      var wrap = document.createElement("div");
+      wrap.className = "field";
+      wrap.innerHTML =
+        "<label>" + label + "</label>" +
+        '<div class="colorRow">' +
+          '<input type="color" id="' + key + '">' +
+          '<span class="val" id="' + key + 'v"></span>' +
+          '<button type="button" id="' + key + 'r">' + resetLabel + "</button>" +
+        "</div>";
+      host.appendChild(wrap);
+
+      var input = wrap.querySelector("#" + key);
+      var val   = wrap.querySelector("#" + key + "v");
+      var reset = wrap.querySelector("#" + key + "r");
+
+      /* 空字串代表「未設定」，交給版型自己回退 */
+      state[key] = def;
+      input.value = def || state.col;
+      val.textContent = def || "（未設定）";
+
+      input.oninput = function(){
+        state[key] = input.value.toUpperCase();
+        val.textContent = state[key];
+        update();
+      };
+      reset.onclick = function(){
+        state[key] = def;
+        input.value = def || state.col;
+        val.textContent = def || "（未設定）";
+        update();
+      };
+    });
+  }
+
+  /* ---------- 自訂按鈕 ---------- */
+
+  function renderButtons(){
+    var host = $("btns");
+    host.innerHTML = "";
+
+    state.buttons.forEach(function(b, idx){
+      var row = document.createElement("div");
+      row.className = "btnrow";
+      row.innerHTML =
+        '<input type="text" placeholder="按鈕文字">' +
+        '<input type="text" placeholder="https://...">' +
+        "<button type='button' title='刪除'>×</button>";
+
+      var inputs = row.querySelectorAll("input");
+      inputs[0].value = b.label || "";
+      inputs[1].value = b.uri || "";
+      inputs[0].oninput = function(){ b.label = inputs[0].value; update(); };
+      inputs[1].oninput = function(){ b.uri = inputs[1].value; update(); };
+
+      row.querySelector("button").onclick = function(){
+        state.buttons.splice(idx, 1); renderButtons(); update();
+      };
+      host.appendChild(row);
+    });
+
+    $("addBtn").style.display = state.buttons.length >= 3 ? "none" : "block";
+  }
+
+  $("addBtn").onclick = function(){
+    if (state.buttons.length >= 3) return;
+    state.buttons.push({ label:"", uri:"" });
+    renderButtons();
+  };
+
+  /* ---------- 主色 ---------- */
+
+  function setMain(c){
+    state.col = c;
+    $("colCustom").value = c;
+    document.querySelectorAll("#sw i").forEach(function(x){
+      x.classList.toggle("on", x.getAttribute("data-c") === c);
+    });
+    /* 未設定的進階顏色跟著主色走，把預覽色塊同步過去 */
+    ADV.forEach(function(a){
+      if (!state[a[0]]) $(a[0]).value = c;
+    });
+    update();
+  }
+
+  document.querySelectorAll("#sw i").forEach(function(x){
+    x.onclick = function(){ setMain(x.getAttribute("data-c")); };
+  });
+  $("colCustom").oninput = function(){ setMain($("colCustom").value.toUpperCase()); };
+
+  /* ---------- 收集資料 ---------- */
+
+  function collect(){
+    var d = {
+      tpl: state.tpl,
+      n: $("n").value.trim(), id: $("id").value.trim(),
+      c: $("c").value.trim(), t: $("t").value.trim(), d: $("d").value.trim(),
+      p: $("p").value.trim(), e: $("e").value.trim(),
+      l: $("l").value.trim(), a: $("a").value.trim(),
+      w: $("w").value.trim(), f: $("f").value.trim(),
+      i: $("i").value.trim(), k: $("k").value.trim(),
+      photo: $("photo").value.trim(),
+      photoSize: (document.querySelector("input[name=ps]:checked") || {}).value || "中",
+      col: state.col,
+      fp: $("fp").checked ? 1 : 0, fe: $("fe").checked ? 1 : 0,
+      fa: $("fa").checked ? 1 : 0, fl: $("fl").checked ? 1 : 0,
+      share: $("share").checked ? 1 : 0,
+      shareUrl: $("shareUrl").value.trim(),
+      buttons: state.buttons.filter(function(b){ return b.label && b.uri; })
+    };
+    ADV.forEach(function(a){ if (state[a[0]]) d[a[0]] = state[a[0]]; });
+    return d;
+  }
+
+  /* ---------- 編碼（跟分享頁同一套 base64url） ---------- */
+
+  function encodePayload(obj){
+    var bytes = new TextEncoder().encode(JSON.stringify(obj));
+    var bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  }
+
+  /* ---------- 更新 ---------- */
+
+  var current = null;
+
+  function update(){
+    var d = collect();
+    current = window.CardTemplates.buildCard(d);
+
+    var canvas = $("canvas");
+    canvas.innerHTML = "";
+    try {
+      canvas.appendChild(window.FlexRender.render(current));
+    } catch (err) {
+      canvas.innerHTML =
+        '<div class="help" style="padding:20px;text-align:center;">' +
+        "預覽渲染失敗<br><b>" + err.message + "</b><br>" +
+        "Flex JSON 本身可能還是好的，可以按上面的「複製 Flex JSON」" +
+        "貼到 Flex Message Simulator 確認。</div>";
+      console.error("預覽渲染失敗：", err);
+    }
+
+    var base = (location.protocol === "http:" || location.protocol === "https:")
+      ? location.origin + location.pathname.replace(/[^\/]*$/, "") + "share.html"
+      : "https://你的網域/share.html";
+    $("link").value = base + "#c=" + encodePayload(d);
+  }
+
+  /* ---------- 輸出 ---------- */
+
+  function copy(text, msg){
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function(){ toast(msg); },
+        function(){ toast("複製失敗，請手動選取"); });
+    } else {
+      toast("這個瀏覽器不支援自動複製");
+    }
+  }
+
+  $("copyJson").onclick = function(){
+    copy(JSON.stringify(current, null, 2), "已複製 Flex JSON");
+  };
+
+  $("dlJson").onclick = function(){
+    var blob = new Blob([JSON.stringify(current, null, 2)], { type:"application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "card.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 800);
+  };
+
+  $("copyLink").onclick = function(){ copy($("link").value, "已複製名片連結"); };
+
+  /* ---------- 啟動 ---------- */
+
+  buildTemplatePicker();
+  buildAdvColors();
+  renderButtons();
+  setMain("#06C755");
+
+  document.querySelectorAll("input, select").forEach(function(el){
+    if (el.type === "color") return;
+    el.addEventListener("input", update);
+    el.addEventListener("change", update);
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>
+
